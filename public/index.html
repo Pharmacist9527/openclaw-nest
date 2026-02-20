@@ -596,7 +596,8 @@ function viewLogs(id) {
   $("logViewer").textContent = "Loading logs...";
   showPanel("logsPanel");
 
-  var es = new EventSource("/instances/" + encodeURIComponent(id) + "/logs");
+  var followParam = (STATE.engineType === "docker") ? "&follow=true" : "";
+  var es = new EventSource("/instances/" + encodeURIComponent(id) + "/logs?follow=" + (STATE.engineType === "docker" ? "true" : "false"));
   var viewer = $("logViewer");
   viewer.textContent = "";
 
