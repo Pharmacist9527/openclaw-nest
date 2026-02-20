@@ -1,0 +1,15 @@
+services:
+  openclaw-nest:
+    image: openclaw-nest:latest
+    build: .
+    container_name: openclaw-nest
+    ports:
+      - "6800:6800"
+      - "18790-18810:18790-18810"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOST_DATA_PATH:-./data}:/data/openclaw-nest
+    environment:
+      - HOST_DATA_PATH=${HOST_DATA_PATH:-./data}
+      - NEST_ENGINE=docker
+    restart: unless-stopped

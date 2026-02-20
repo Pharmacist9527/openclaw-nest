@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw Nest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"></noscript>
+<!--SERVER_STATE-->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #fafafa;
+    color: #71717a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 560px;
+    padding: 48px 40px;
+    background: #fff;
+    border: 1.5px solid #e4e4e7;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  }
+
+  .brand {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .brand-name {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -1.5px;
+    color: #09090b;
+    line-height: 1;
+  }
+  .brand-sub {
+    font-size: 14px;
+    color: #a1a1aa;
+    margin-top: 12px;
+    font-weight: 400;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .panel.active { animation: fadeIn 0.3s ease; }
+
+  /* Instance cards */
+  .instance-card {
+    padding: 18px 20px;
+    background: #fafafa;
+    border: 1px solid #f0f0f2;
+    border-radius: 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .instance-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+  .instance-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .instance-dot.running { background: #22c55e; }
+  .instance-dot.stopped { background: #ef4444; }
+  .instance-dot.error { background: #f59e0b; }
+  .instance-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #09090b;
+  }
+  .instance-port {
+    font-size: 13px;
+    color: #a1a1aa;
+    margin-left: 4px;
+  }
+  .engine-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .engine-badge.docker { background: #dbeafe; color: #2563eb; }
+  .engine-badge.process { background: #fef3c7; color: #d97706; }
+
+  .instance-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 32px 0;
+    color: #a1a1aa;
+    font-size: 15px;
+  }
+
+  /* Buttons */
+  button {
+    width: 100%;
+    padding: 16px;
+    background: #09090b;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(9,9,11,0.18);
+  }
+  button:hover {
+    background: #27272a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(9,9,11,0.22);
+  }
+  button:active { transform: translateY(0); }
+  button:disabled {
+    background: #e4e4e7;
+    color: #a1a1aa;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  button.sm {
+    padding: 8px 16px;
+    font-size: 13px;
+    margin-top: 0;
+    width: auto;
+  }
+  button.danger { background: #ef4444; }
+  button.danger:hover { background: #dc2626; }
+
+  /* Fields */
+  .field {
+    margin-bottom: 24px;
+    padding: 18px;
+    background: #fafafa;
+    border: 1px solid #f0f0f2;
+    border-radius: 14px;
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #09090b;
+    margin-bottom: 10px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 14px 16px;
+    background: #f9f9fb;
+    border: 1.5px solid #e4e4e7;
+    border-radius: 10px;
+    color: #09090b;
+    font-size: 16px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    outline: none;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus {
+    border-color: #09090b;
+    box-shadow: 0 0 0 3px rgba(9,9,11,0.08);
+    background: #fff;
+  }
+  input::placeholder { color: #d4d4d8; }
+
+  .field-hint {
+    font-size: 13px;
+    color: #a1a1aa;
+    margin-top: 10px;
+  }
+  .field-hint a {
+    color: #09090b;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1.5px;
+    font-weight: 600;
+  }
+
+  .back-link {
+    display: inline-block;
+    font-size: 14px;
+    color: #a1a1aa;
+    cursor: pointer;
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+  .back-link:hover { color: #09090b; }
+
+  .steps {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid #e4e4e7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #a1a1aa;
+    transition: all 0.4s ease;
+  }
+  .step-num.active { border-color: #09090b; color: #09090b; }
+  .step-num.done { border-color: #09090b; background: #09090b; color: #fff; }
+  .step-line { width: 60px; height: 2px; background: #e4e4e7; transition: background 0.4s ease; }
+  .step-line.done { background: #09090b; }
+
+  .progress-wrap {
+    margin-top: 28px;
+    display: none;
+  }
+  .progress-wrap.active { display: block; }
+  .progress-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: #f0f0f2;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #09090b;
+    border-radius: 4px;
+    transition: width 0.6s ease;
+  }
+  .progress-bar-fill.error { background: #ef4444; }
+  .progress-msg {
+    font-size: 13px;
+    color: #71717a;
+    margin-top: 10px;
+    min-height: 18px;
+    animation: breathe 2.5s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .progress-pct {
+    font-size: 13px;
+    font-weight: 600;
+    color: #09090b;
+    margin-top: 6px;
+  }
+
+  /* Log viewer */
+  .log-viewer {
+    background: #09090b;
+    color: #a1a1aa;
+    font-family: 'Menlo', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 16px;
+    border-radius: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-top: 16px;
+  }
+  .log-viewer .log-line { color: #e4e4e7; }
+
+  .engine-info {
+    text-align: center;
+    font-size: 12px;
+    color: #a1a1aa;
+    margin-top: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="brand">
+    <div class="brand-name">OpenClaw Nest</div>
+    <div class="brand-sub">Instance Manager</div>
+  </div>
+
+  <!-- Login panel (server mode) -->
+  <div class="panel" id="login">
+    <div class="field">
+      <label>ACCESS TOKEN</label>
+      <input type="password" id="tokenInput" placeholder="Paste token from terminal" autocomplete="off">
+    </div>
+    <div id="loginError" style="color:#ef4444;font-size:13px;text-align:center;min-height:20px;margin-bottom:8px"></div>
+    <button type="button" id="loginBtn">Unlock</button>
+  </div>
+
+  <!-- Home: instance list -->
+  <div class="panel" id="home">
+    <div id="instanceList"></div>
+    <button type="button" id="addBtn">+ New Instance</button>
+    <div class="engine-info" id="engineInfo"></div>
+  </div>
+
+  <!-- Step 1: Instance config -->
+  <div class="panel" id="step1">
+    <span class="back-link" id="backHome">&larr; Back</span>
+    <div class="steps">
+      <div class="step-num active">1</div>
+      <div class="step-line"></div>
+      <div class="step-num">2</div>
+      <div class="step-line"></div>
+      <div class="step-num">3</div>
+    </div>
+    <form id="step1Form">
+      <div class="field">
+        <label>Instance Name</label>
+        <input type="text" id="instanceName" placeholder="default" autocomplete="off">
+        <div class="field-hint">Unique name for this instance</div>
+      </div>
+      <div class="field">
+        <label>Model</label>
+        <select id="modelSelect"></select>
+      </div>
+      <div class="field">
+        <label>Channel</label>
+        <select id="channelSelect">
+          <option value="telegram">Telegram</option>
+          <option value="feishu">Feishu</option>
+        </select>
+      </div>
+      <button type="submit">Next</button>
+    </form>
+  </div>
+
+  <!-- Step 2: Deploy -->
+  <div class="panel" id="step2">
+    <div class="steps">
+      <div class="step-num done">&#10003;</div>
+      <div class="step-line done"></div>
+      <div class="step-num active">2</div>
+      <div class="step-line"></div>
+      <div class="step-num">3</div>
+    </div>
+    <form id="step2Form">
+      <div class="field">
+        <label>EvoLink API Key</label>
+        <input type="password" id="apiKey" placeholder="sk-..." required autocomplete="off">
+        <div class="field-hint">Get your key at <a href="https://evolink.ai" target="_blank">evolink.ai</a></div>
+      </div>
+      <div class="field" id="telegramTokenField">
+        <label>Telegram Bot Token</label>
+        <input type="text" id="botToken" placeholder="123456789:ABCdef..." autocomplete="off">
+        <div class="field-hint">Create a bot via <a href="https://t.me/BotFather" target="_blank">@BotFather</a></div>
+      </div>
+      <div class="field" id="feishuAppIdField" style="display:none">
+        <label>Feishu App ID</label>
+        <input type="text" id="feishuAppId" placeholder="cli_xxx" autocomplete="off">
+        <div class="field-hint">From <a href="https://open.feishu.cn/app" target="_blank">Feishu Open Platform</a></div>
+      </div>
+      <div class="field" id="feishuAppSecretField" style="display:none">
+        <label>Feishu App Secret</label>
+        <input type="password" id="feishuAppSecret" placeholder="App Secret" autocomplete="off">
+      </div>
+      <button type="submit" id="deployBtn">Deploy</button>
+    </form>
+    <div class="progress-wrap" id="deployProgress">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="deployFill"></div></div>
+      <div class="progress-pct" id="deployPct"></div>
+      <div class="progress-msg" id="deployMsg"></div>
+    </div>
+  </div>
+
+  <!-- Step 3: Connect -->
+  <div class="panel" id="step3">
+    <div class="steps">
+      <div class="step-num done">&#10003;</div>
+      <div class="step-line done"></div>
+      <div class="step-num done">&#10003;</div>
+      <div class="step-line done"></div>
+      <div class="step-num active">3</div>
+    </div>
+    <form id="step3Form">
+      <div class="field" id="telegramIdField">
+        <label>Your Telegram User ID</label>
+        <input type="text" id="telegramId" placeholder="123456789" autocomplete="off">
+        <div class="field-hint">Send /start to <a href="https://t.me/userinfobot" target="_blank">@userinfobot</a> to get your ID</div>
+      </div>
+      <div id="feishuDoneField" style="display:none;text-align:center;padding:24px 0;color:#09090b;font-size:15px;line-height:1.8;">
+        Deploy complete.<br>
+        Go to <a href="https://open.feishu.cn/app" target="_blank" style="color:#09090b;font-weight:600;text-decoration:underline">Feishu Open Platform</a> &rarr; Event Subscriptions &rarr; select "Receive events via WebSocket" &rarr; click Save.<br>
+        Then send a message to the bot to start chatting.
+      </div>
+      <button type="submit" id="connectBtn">Connect</button>
+      <button type="button" id="skipBtn" class="outline" style="display:none">Done</button>
+    </form>
+    <div class="progress-wrap" id="connectProgress">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="connectFill"></div></div>
+      <div class="progress-pct" id="connectPct"></div>
+      <div class="progress-msg" id="connectMsg"></div>
+    </div>
+  </div>
+
+  <!-- Logs panel -->
+  <div class="panel" id="logsPanel">
+    <span class="back-link" id="backFromLogs">&larr; Back</span>
+    <div style="font-size:16px;font-weight:700;color:#09090b;margin-bottom:16px">
+      Logs: <span id="logsInstanceName"></span>
+    </div>
+    <div class="log-viewer" id="logViewer">Loading logs...</div>
+  </div>
+</div>
+
+<script>
+var STATE = window.__STATE__ || {};
+var currentInstance = "default";
+var currentChannel = "telegram";
+var currentModel = "";
+var currentDeployPort = 0;
+
+function $(id) { return document.getElementById(id); }
+
+function esc(s) {
+  var d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function showPanel(id) {
+  var panels = document.querySelectorAll(".panel");
+  for (var i = 0; i < panels.length; i++) panels[i].classList.remove("active");
+  $(id).classList.add("active");
+}
+
+function initModels() {
+  var sel = $("modelSelect");
+  sel.innerHTML = "";
+  var models = STATE.models || [];
+  for (var i = 0; i < models.length; i++) {
+    var opt = document.createElement("option");
+    opt.value = models[i].id;
+    opt.textContent = models[i].name;
+    sel.appendChild(opt);
+  }
+  if (models.length > 0) sel.value = models[0].id;
+}
+
+function renderInstances(instances) {
+  var list = $("instanceList");
+  if (!instances || instances.length === 0) {
+    list.innerHTML = '<div class="empty-state">No instances yet. Click below to create one.</div>';
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < instances.length; i++) {
+    var inst = instances[i];
+    var running = inst.status === "running";
+    var safeName = esc(inst.id);
+    var attrName = esc(inst.id).replace(/'/g, "&#39;");
+    var engineClass = inst.engine === "docker" ? "docker" : "process";
+    html += '<div class="instance-card">';
+    html += '<div class="instance-info">';
+    html += '<span class="instance-dot ' + (running ? "running" : inst.status === "error" ? "error" : "stopped") + '"></span>';
+    html += '<div>';
+    html += '<span class="instance-name">' + safeName + '</span>';
+    html += '<span class="instance-port">:' + inst.port + '</span>';
+    html += '<span class="engine-badge ' + engineClass + '">' + inst.engine + '</span>';
+    html += '<div style="font-size:12px;color:#a1a1aa;margin-top:4px">';
+    if (inst.config && inst.config.modelId) {
+      html += esc(inst.config.modelId);
+      html += ' <span style="cursor:pointer;color:#09090b;font-size:14px;margin-left:4px;vertical-align:middle" title="Change model" onclick="openModelModal(\'' + attrName + '\',\'' + esc(inst.config.modelId || '') + '\')">\u270E</span>';
+    }
+    if (inst.config && inst.config.channel) {
+      if (inst.config.modelId) html += ' \u00b7 ';
+      html += esc(inst.config.channel);
+    }
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div class="instance-actions">';
+    if (running) {
+      html += '<button class="sm" onclick="viewLogs(\'' + attrName + '\')">Logs</button>';
+      html += '<button class="sm danger" onclick="doStop(\'' + attrName + '\',this)">Stop</button>';
+    } else {
+      html += '<button class="sm" onclick="doStart(\'' + attrName + '\',this)">Start</button>';
+    }
+    html += '<button class="sm danger" onclick="doDelete(\'' + attrName + '\',this)">Del</button>';
+    html += '</div>';
+    html += '</div>';
+  }
+  list.innerHTML = html;
+}
+
+function refreshInstances(cb) {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "/instances");
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      var instances = JSON.parse(xhr.responseText);
+      STATE.instances = instances;
+      renderInstances(instances);
+    }
+    if (cb) cb();
+  };
+  xhr.onerror = function() { if (cb) cb(); };
+  xhr.send();
+}
+
+function doStart(id, btn) {
+  btn.disabled = true;
+  btn.textContent = "Starting...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/instances/" + encodeURIComponent(id) + "/start");
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function() {
+    if (xhr.status !== 200) {
+      try { alert("Start failed: " + JSON.parse(xhr.responseText).error); } catch(e) { alert("Start failed"); }
+    }
+    setTimeout(function() { refreshInstances(); }, 2000);
+  };
+  xhr.onerror = function() { alert("Network error"); refreshInstances(); };
+  xhr.send("{}");
+}
+
+function doStop(id, btn) {
+  btn.disabled = true;
+  btn.textContent = "Stopping...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/instances/" + encodeURIComponent(id) + "/stop");
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function() {
+    if (xhr.status !== 200) {
+      try { alert("Stop failed: " + JSON.parse(xhr.responseText).error); } catch(e) { alert("Stop failed"); }
+    }
+    setTimeout(function() { refreshInstances(); }, 2000);
+  };
+  xhr.onerror = function() { alert("Network error"); refreshInstances(); };
+  xhr.send("{}");
+}
+
+function doDelete(id, btn) {
+  if (!confirm("Delete instance \"" + id + "\"? This will stop and remove all data.")) return;
+  btn.disabled = true;
+  btn.textContent = "...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("DELETE", "/instances/" + encodeURIComponent(id));
+  xhr.onload = function() {
+    if (xhr.status !== 200) {
+      try { alert("Delete failed: " + JSON.parse(xhr.responseText).error); } catch(e) { alert("Delete failed"); }
+    }
+    refreshInstances();
+  };
+  xhr.onerror = function() { alert("Network error"); refreshInstances(); };
+  xhr.send();
+}
+
+function viewLogs(id) {
+  $("logsInstanceName").textContent = id;
+  $("logViewer").textContent = "Loading logs...";
+  showPanel("logsPanel");
+
+  var es = new EventSource("/instances/" + encodeURIComponent(id) + "/logs");
+  var viewer = $("logViewer");
+  viewer.textContent = "";
+
+  es.onmessage = function(ev) {
+    var d = JSON.parse(ev.data);
+    if (d.done) { es.close(); return; }
+    if (d.line) {
+      var line = document.createElement("div");
+      line.className = "log-line";
+      line.textContent = d.line;
+      viewer.appendChild(line);
+      viewer.scrollTop = viewer.scrollHeight;
+    }
+  };
+  es.onerror = function() {
+    es.close();
+    if (!viewer.textContent) viewer.textContent = "No logs available or connection lost.";
+  };
+
+  // Store reference to close on panel switch
+  $("logsPanel")._es = es;
+}
+
+function openModelModal(instanceId, currentModelId) {
+  var old = document.getElementById("modelModal");
+  if (old) old.remove();
+
+  var models = STATE.models || [];
+  var overlay = document.createElement("div");
+  overlay.id = "modelModal";
+  overlay.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;z-index:9999;animation:fadeIn 0.2s ease";
+
+  var box = document.createElement("div");
+  box.style.cssText = "background:#fff;border-radius:16px;padding:28px 24px;width:320px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,0.15)";
+
+  var title = document.createElement("div");
+  title.style.cssText = "font-size:16px;font-weight:700;color:#09090b;margin-bottom:18px;text-align:center";
+  title.textContent = "Switch Model";
+  box.appendChild(title);
+
+  var list = document.createElement("div");
+  for (var i = 0; i < models.length; i++) {
+    (function(m) {
+      var item = document.createElement("div");
+      var isCurrent = m.id === currentModelId;
+      item.style.cssText = "padding:12px 16px;border-radius:10px;margin-bottom:6px;cursor:pointer;font-size:14px;font-weight:500;transition:all 0.15s ease;"
+        + (isCurrent ? "background:#09090b;color:#fff;" : "background:#fafafa;color:#09090b;border:1px solid #f0f0f2;");
+      item.textContent = m.name;
+      if (isCurrent) {
+        item.textContent = m.name + "  \u2713";
+        item.style.cursor = "default";
+      }
+      item.onmouseenter = function() { if (!isCurrent) item.style.background = "#f0f0f2"; };
+      item.onmouseleave = function() { if (!isCurrent) item.style.background = "#fafafa"; };
+      item.onclick = function() {
+        if (isCurrent) return;
+        var items = list.querySelectorAll("div");
+        for (var k = 0; k < items.length; k++) {
+          items[k].style.pointerEvents = "none";
+          items[k].style.opacity = "0.5";
+        }
+        item.style.opacity = "1";
+        item.textContent = m.name + "  ...";
+        item.style.background = "#09090b";
+        item.style.color = "#fff";
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("PUT", "/instances/" + encodeURIComponent(instanceId) + "/config");
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onload = function() {
+          if (xhr.status !== 200) {
+            try { alert("Change model failed: " + JSON.parse(xhr.responseText).error); } catch(e) { alert("Change model failed"); }
+          }
+          overlay.remove();
+          refreshInstances();
+        };
+        xhr.onerror = function() { alert("Network error"); overlay.remove(); refreshInstances(); };
+        xhr.send(JSON.stringify({ modelId: m.id }));
+      };
+      list.appendChild(item);
+    })(models[i]);
+  }
+  box.appendChild(list);
+
+  var cancelBtn = document.createElement("div");
+  cancelBtn.style.cssText = "text-align:center;margin-top:14px;font-size:13px;color:#a1a1aa;cursor:pointer;font-weight:500";
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.onmouseenter = function() { cancelBtn.style.color = "#09090b"; };
+  cancelBtn.onmouseleave = function() { cancelBtn.style.color = "#a1a1aa"; };
+  cancelBtn.onclick = function() { overlay.remove(); };
+  box.appendChild(cancelBtn);
+
+  overlay.appendChild(box);
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
+// Auto-refresh
+var pollTimer = null;
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(function() {
+    if ($("home").classList.contains("active")) refreshInstances();
+  }, 3000);
+}
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+// Init
+function init() {
+  initModels();
+  if (STATE.instances !== undefined) {
+    renderInstances(STATE.instances);
+    showPanel("home");
+    startPolling();
+    if (STATE.engineType) {
+      $("engineInfo").textContent = "Engine: " + STATE.engineType;
+    }
+  } else {
+    showPanel("login");
+  }
+}
+init();
+
+// --- Login ---
+$("loginBtn").addEventListener("click", function() {
+  var token = $("tokenInput").value.trim();
+  if (!token) return;
+  $("loginBtn").disabled = true;
+  $("loginError").textContent = "";
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/auth/login");
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      location.reload();
+    } else if (xhr.status === 429) {
+      $("loginError").textContent = "Too many attempts. Try again later.";
+      $("loginBtn").disabled = false;
+    } else {
+      $("loginError").textContent = "Invalid token";
+      $("loginBtn").disabled = false;
+    }
+  };
+  xhr.onerror = function() {
+    $("loginError").textContent = "Network error";
+    $("loginBtn").disabled = false;
+  };
+  xhr.send(JSON.stringify({ token: token }));
+});
+
+$("tokenInput").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") $("loginBtn").click();
+});
+
+// --- Navigation ---
+$("addBtn").addEventListener("click", function() {
+  $("instanceName").value = "";
+  showPanel("step1");
+});
+
+$("backHome").addEventListener("click", function() {
+  refreshInstances(function() { showPanel("home"); });
+});
+
+$("backFromLogs").addEventListener("click", function() {
+  var es = $("logsPanel")._es;
+  if (es) { es.close(); $("logsPanel")._es = null; }
+  refreshInstances(function() { showPanel("home"); });
+});
+
+// --- Step 1: Next ---
+$("step1Form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  currentInstance = $("instanceName").value.trim() || "default";
+
+  if (currentInstance !== "default") {
+    if (currentInstance.length > 32) {
+      alert("Instance name too long (max 32 characters).");
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(currentInstance)) {
+      alert("Instance name can only contain letters, numbers, hyphens and underscores.");
+      return;
+    }
+  }
+
+  currentModel = $("modelSelect").value;
+  currentChannel = $("channelSelect").value;
+
+  var existing = STATE.instances || [];
+  for (var i = 0; i < existing.length; i++) {
+    if (existing[i].id === currentInstance) {
+      alert("Instance \"" + currentInstance + "\" already exists. Choose a different name.");
+      return;
+    }
+  }
+
+  $("apiKey").value = "";
+  $("botToken").value = "";
+  $("deployBtn").disabled = false;
+  $("deployProgress").classList.remove("active");
+  $("deployFill").style.width = "0%";
+  $("deployFill").classList.remove("error");
+  $("deployPct").textContent = "";
+  $("deployMsg").textContent = "";
+  $("step2Form").style.display = "";
+
+  $("telegramTokenField").style.display = currentChannel === "telegram" ? "" : "none";
+  $("feishuAppIdField").style.display = currentChannel === "feishu" ? "" : "none";
+  $("feishuAppSecretField").style.display = currentChannel === "feishu" ? "" : "none";
+
+  showPanel("step2");
+});
+
+// --- Step 2: Deploy with SSE progress ---
+$("step2Form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  var apiKey = $("apiKey").value.trim();
+  var botToken = $("botToken").value.trim();
+  var appId = $("feishuAppId").value.trim();
+  var appSecret = $("feishuAppSecret").value.trim();
+
+  if (!apiKey) return;
+  if (currentChannel === "telegram" && !botToken) return;
+  if (currentChannel === "feishu" && (!appId || !appSecret)) return;
+
+  $("deployBtn").disabled = true;
+  $("deployProgress").classList.add("active");
+  $("deployFill").style.width = "0%";
+  $("deployFill").classList.remove("error");
+  $("deployPct").textContent = "0%";
+  $("deployMsg").textContent = "Starting...";
+
+  var payload = {
+    instanceId: currentInstance,
+    apiKey: apiKey,
+    model: currentModel,
+    channel: currentChannel
+  };
+  if (currentChannel === "telegram") payload.botToken = botToken;
+  else if (currentChannel === "feishu") { payload.appId = appId; payload.appSecret = appSecret; }
+
+  // Step 1: create instance via POST /instances (get ticket)
+  var pxhr = new XMLHttpRequest();
+  pxhr.open("POST", "/instances");
+  pxhr.setRequestHeader("Content-Type", "application/json");
+  pxhr.onload = function() {
+    if (pxhr.status !== 200) {
+      var errMsg = "Failed to prepare deployment";
+      try { errMsg = JSON.parse(pxhr.responseText).error; } catch(e) {}
+      $("deployFill").style.width = "100%";
+      $("deployFill").classList.add("error");
+      $("deployPct").textContent = "Error";
+      $("deployMsg").textContent = errMsg;
+      $("deployBtn").disabled = false;
+      return;
+    }
+    var ticket = JSON.parse(pxhr.responseText).ticket;
+
+    // Step 2: SSE deploy stream
+    var es = new EventSource("/instances/" + encodeURIComponent(currentInstance) + "/deploy-stream?ticket=" + encodeURIComponent(ticket));
+    es.onmessage = function(ev) {
+      var d = JSON.parse(ev.data);
+      if (d.error) {
+        $("deployFill").style.width = "100%";
+        $("deployFill").classList.add("error");
+        $("deployPct").textContent = "Error";
+        $("deployMsg").textContent = d.message;
+        $("deployBtn").disabled = false;
+        es.close();
+        return;
+      }
+      $("deployFill").style.width = d.percent + "%";
+      $("deployPct").textContent = d.percent + "%";
+      $("deployMsg").textContent = d.message;
+      if (d.done) {
+        es.close();
+        currentDeployPort = d.port;
+        $("step2Form").style.display = "none";
+        setTimeout(function() {
+          $("telegramId").value = "";
+          $("connectBtn").disabled = false;
+          $("connectProgress").classList.remove("active");
+          $("connectFill").style.width = "0%";
+          $("connectFill").classList.remove("error");
+          $("connectPct").textContent = "";
+          $("connectMsg").textContent = "";
+          $("step3Form").style.display = "";
+
+          $("telegramIdField").style.display = currentChannel === "telegram" ? "" : "none";
+          $("feishuDoneField").style.display = currentChannel === "feishu" ? "" : "none";
+          $("connectBtn").style.display = currentChannel === "telegram" ? "" : "none";
+          $("skipBtn").style.display = currentChannel === "feishu" ? "" : "none";
+          showPanel("step3");
+        }, 800);
+      }
+    };
+    es.onerror = function() {
+      $("deployFill").style.width = "100%";
+      $("deployFill").classList.add("error");
+      $("deployPct").textContent = "Error";
+      $("deployMsg").textContent = "Connection lost";
+      $("deployBtn").disabled = false;
+      es.close();
+    };
+  };
+  pxhr.send(JSON.stringify(payload));
+});
+
+// --- Step 3: Done ---
+$("skipBtn").addEventListener("click", function() {
+  $("skipBtn").disabled = true;
+  $("skipBtn").textContent = "Restarting...";
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/instances/" + encodeURIComponent(currentInstance) + "/restart");
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function() {
+    $("skipBtn").disabled = false;
+    $("skipBtn").textContent = "Done";
+    refreshInstances(function() { showPanel("home"); });
+  };
+  xhr.onerror = function() {
+    $("skipBtn").disabled = false;
+    refreshInstances(function() { showPanel("home"); });
+  };
+  xhr.send("{}");
+});
+
+// --- Step 3: Connect (Telegram allowlist) ---
+$("step3Form").addEventListener("submit", function(e) {
+  e.preventDefault();
+  var telegramId = $("telegramId").value.trim();
+  if (currentChannel === "telegram" && !telegramId) return;
+
+  $("connectBtn").disabled = true;
+  $("connectProgress").classList.add("active");
+  $("connectFill").style.width = "0%";
+  $("connectFill").classList.remove("error");
+  $("connectPct").textContent = "0%";
+  $("connectMsg").textContent = "Connecting...";
+
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/instances/" + encodeURIComponent(currentInstance) + "/connect-telegram");
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.onload = function() {
+    if (xhr.status !== 200) {
+      var errMsg = "Connect failed";
+      try { errMsg = JSON.parse(xhr.responseText).error; } catch(ex) {}
+      $("connectFill").style.width = "100%";
+      $("connectFill").classList.add("error");
+      $("connectPct").textContent = "Error";
+      $("connectMsg").textContent = errMsg;
+      $("connectBtn").disabled = false;
+      return;
+    }
+    $("connectFill").style.width = "100%";
+    $("connectPct").textContent = "100%";
+    $("connectMsg").textContent = "Connected! Telegram user added.";
+    $("step3Form").style.display = "none";
+    setTimeout(function() {
+      refreshInstances(function() { showPanel("home"); });
+    }, 1200);
+  };
+  xhr.onerror = function() {
+    $("connectFill").style.width = "100%";
+    $("connectFill").classList.add("error");
+    $("connectPct").textContent = "Error";
+    $("connectMsg").textContent = "Network error";
+    $("connectBtn").disabled = false;
+  };
+  xhr.send(JSON.stringify({ telegramId: telegramId }));
+});
+</script>
+</body>
+</html>
