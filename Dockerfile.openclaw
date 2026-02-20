@@ -1,0 +1,15 @@
+FROM node:22-slim
+
+# Install system dependencies + openclaw in one layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends git cmake make g++ ca-certificates && \
+    npm install -g openclaw@latest && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /root/.npm /tmp/*
+
+# Git config: rewrite ssh to https (some npm deps use ssh://git@github.com)
+ENV GIT_CONFIG_COUNT=1 \
+    GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf \
+    GIT_CONFIG_VALUE_0=ssh://git@github.com/ \
+    NODE_ENV=production
+
+WORKDIR /root
